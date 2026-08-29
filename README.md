@@ -13,7 +13,7 @@
 
 ## Screenshot
 
-![creator](./git-assets/feed.webp) ![poll](./git-assets/list.webp)
+![creator](./git-assets/creator.webp) ![poll](./git-assets/poll.webp)
 
 ## Development
 
