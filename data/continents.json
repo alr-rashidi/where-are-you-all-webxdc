@@ -1,0 +1,34 @@
+{
+  "continents": [
+    {
+      "id": "AF",
+      "name": "Africa",
+      "icon": "🌍"
+    },
+    {
+      "id": "AS",
+      "name": "Asia",
+      "icon": "🌏"
+    },
+    {
+      "id": "EU",
+      "name": "Europe",
+      "icon": "🌍"
+    },
+    {
+      "id": "NA",
+      "name": "North America",
+      "icon": "🌎"
+    },
+    {
+      "id": "OC",
+      "name": "Oceania",
+      "icon": "🌏"
+    },
+    {
+      "id": "SA",
+      "name": "South America",
+      "icon": "🌎"
+    }
+  ]
+}

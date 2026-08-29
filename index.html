@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Where are you all? - WebXDC Demographic Map</title>
+  
+  <!-- WebXDC standard pure styles -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Pure offline scripts -->
+  <script src="webxdc.js"></script>
+  <script src="js/jszip.min.js"></script>
+  <script src="js/packager.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</head>
+<body>
+
+  <!-- Fixed Top Header -->
+  <header class="app-fixed-header">
+    <div class="header-inner">
+      <div class="app-title-group">
+        <img id="header-app-logo" src="icon.png" alt="App Logo" class="app-logo-img">
+        <div>
+          <h1 class="app-name">Where are you all?</h1>
+          <p id="current-scope-heading" style="font-size:11px; font-weight:700; color:var(--text-muted);">
+            Demographic Map & Poll App
+          </p>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <span id="mode-indicator-badge" class="neo-badge neo-btn-yellow">🛠️ Creator Mode</span>
+        <button id="theme-toggle-btn" class="neo-btn neo-btn-sm neo-btn-white">🌙 Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-container">
+    
+    <!-- Multi-Peer Simulator Bar (For Delta Chat & WebXDC dev testing) -->
+    <div id="sim-peer-bar" class="peer-bar">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="neo-badge neo-btn-pink">WebXDC Peer Sim</span>
+        <span>Simulate as User:</span>
+      </div>
+      <div id="peer-chips-list" class="peer-list"></div>
+      <div style="display:flex; gap:6px;">
+        <button id="clear-sync-btn" class="neo-btn neo-btn-sm neo-btn-white" title="Clear simulation votes">Reset Sync</button>
+      </div>
+    </div>
+
+    <!-- ================= CREATOR MODE VIEW ================= -->
+    <section id="creator-view" class="creator-grid" style="display:none;">
+
+      <!-- Left: Scope Selector + Map Preview -->
+      <div class="creator-main">
+        <div class="neo-box" style="padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <label style="font-size:13px; font-weight:900; text-transform:uppercase;">
+              1. Select Poll Scope Level
+            </label>
+            <span class="neo-badge neo-btn-white">Choose Target</span>
+          </div>
+          
+          <!-- Radio Selection: Global vs Continent vs Country -->
+          <div class="scope-selector-group">
+            <button id="scope-global-btn" class="scope-radio-btn active" data-scope="global">
+              🌍 Global
+            </button>
+            <button id="scope-continent-btn" class="scope-radio-btn" data-scope="continent">
+              🌐 Continent
+            </button>
+            <button id="scope-country-btn" class="scope-radio-btn" data-scope="country">
+              📍 Country
+            </button>
+          </div>
+
+          <label style="display:block; font-size:12px; font-weight:900; text-transform:uppercase; margin-bottom:6px;">
+            2. Target Region
+          </label>
+          <div class="search-box-container">
+            <input 
+              type="text" 
+              id="region-search-input" 
+              class="neo-input" 
+              placeholder="Search region..."
+              autocomplete="off"
+            >
+            <div id="search-dropdown" class="search-results-dropdown"></div>
+          </div>
+        </div>
+
+        <!-- Map Preview (Readonly, non-clickable) -->
+        <div class="neo-box map-section preview-mode">
+          <div class="map-header">
+            <div>
+              <h2 id="creator-map-title" style="font-size:16px; font-weight:900; text-transform:uppercase;">Region Map Preview</h2>
+              <small id="creator-map-subtitle" style="font-weight:700; color:var(--text-muted);">Preview of the map packaged for users</small>
+            </div>
+            <span class="neo-badge neo-btn-white">Preview Only</span>
+          </div>
+
+          <!-- SVG Map Container for Creator Preview -->
+          <div id="creator-map-container" class="map-svg-container"></div>
+
+          <!-- Zoom Floating Buttons -->
+          <div class="zoom-controls">
+            <button id="creator-zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
+            <button id="creator-zoom-out-btn" class="zoom-btn" title="Zoom Out">−</button>
+            <button id="creator-zoom-reset-btn" class="zoom-btn" title="Reset View" style="font-size:12px;">⟲</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Selected Region + Actions -->
+      <div class="creator-sidebar">
+        <div class="selected-region-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="neo-badge" style="background:var(--accent-yellow); color:#111;">Selected Target</span>
+            <span id="creator-selected-scope-badge" class="neo-badge neo-btn-white">Global Scope</span>
+          </div>
+          <h3 id="creator-selected-region-name" class="region-display-title">Global (All Continents)</h3>
+          <p id="creator-selected-region-desc" style="font-size:13px; font-weight:700; color:var(--text-muted);">
+            Generates an independent .xdc poll for all 7 continents.
+          </p>
+
+          <div class="card-actions-grid">
+            <button id="package-xdc-btn" class="neo-btn neo-btn-pink" style="width:100%;">
+              Package .XDC For This Region
+            </button>
+            <button id="run-region-btn" class="neo-btn neo-btn-cyan" style="width:100%; display:none;">
+              Run App With This Region
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= USAGE / POLL MODE VIEW (ReSent App) ================= -->
+    <section id="usage-view" class="usage-grid" style="display:none;">
+      
+      <!-- Left: Interactive Map for Voting -->
+      <div class="neo-box map-section interactive-mode">
+        <div class="map-header">
+          <div>
+            <h2 id="usage-map-title" style="font-size:16px; font-weight:900; text-transform:uppercase;">Interactive Map</h2>
+            <small id="usage-map-subtitle" style="font-weight:700; color:var(--text-muted);">Click your region on the map</small>
+          </div>
+
+          <div class="map-controls-row">
+            <span id="my-current-vote-badge" class="neo-badge neo-btn-pink" style="display:none;">Your Pick</span>
+          </div>
+        </div>
+
+        <div id="usage-map-container" class="map-svg-container"></div>
+
+        <div class="zoom-controls">
+          <button id="usage-zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
+          <button id="usage-zoom-out-btn" class="zoom-btn" title="Zoom Out">−</button>
+          <button id="usage-zoom-reset-btn" class="zoom-btn" title="Reset View" style="font-size:12px;">⟲</button>
+        </div>
+      </div>
+
+      <!-- Right: Voting Confirm Card & Live Demographic Poll -->
+      <aside class="sidebar-panel">
+        
+        <div class="selected-region-card">
+          <span class="neo-badge" style="align-self:flex-start; background:var(--accent-yellow); color:#111;">Your Selection</span>
+          <h3 id="usage-selected-region-name" class="region-display-title">None Selected</h3>
+          <p id="usage-selected-region-desc" style="font-size:12px; font-weight:700; color:var(--text-muted);">
+            Click on the map to choose your region.
+          </p>
+
+          <button id="confirm-location-btn" class="neo-btn neo-btn-green" style="width:100%;" disabled>
+            📍 Confirm My Location Here
+          </button>
+        </div>
+
+        <!-- Live Demographic Poll Statistics -->
+        <div class="neo-box" style="padding:14px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="font-size:14px; font-weight:900; text-transform:uppercase;">Live Demographic Poll</h4>
+            <span id="total-votes-count" class="neo-badge neo-btn-cyan">0 Participants</span>
+          </div>
+
+          <div id="ranking-stats-list" class="stats-list">
+            <div class="neo-card" style="text-align:center; color: var(--text-muted);">
+              No votes yet. Click a region to vote!
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </section>
+
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+</body>
+</html>
