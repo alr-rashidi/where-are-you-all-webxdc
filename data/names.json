@@ -228,8 +228,9 @@
       "id": "NOR",
       "name": "Norway",
       "type": "country",
-      "flag": "🌐",
+      "flag": "🇳🇴",
       "iso": "NOR",
+      "admin1": "NO",
       "continent": "EU"
     },
     {
@@ -404,8 +405,9 @@
       "id": "FRA",
       "name": "France",
       "type": "country",
-      "flag": "🌐",
+      "flag": "🇫🇷",
       "iso": "FRA",
+      "admin1": "FR",
       "continent": "EU"
     },
     {
@@ -1180,8 +1182,9 @@
       "id": "CN-TW",
       "name": "Taiwan",
       "type": "country",
-      "flag": "🌐",
+      "flag": "🇹🇼",
       "iso": "CN-TW",
+      "admin1": "TW",
       "continent": "AS"
     },
     {
@@ -1337,14 +1340,6 @@
       "continent": "AN"
     },
     {
-      "id": "CYN",
-      "name": "N. Cyprus",
-      "type": "country",
-      "flag": "🌐",
-      "iso": "CYN",
-      "continent": "AS"
-    },
-    {
       "id": "CY",
       "name": "Cyprus",
       "type": "country",
@@ -1396,7 +1391,7 @@
       "id": "SOL",
       "name": "Somaliland",
       "type": "country",
-      "flag": "🌐",
+      "flag": "🇸🇴",
       "iso": "SOL",
       "continent": "AF"
     },
@@ -1452,8 +1447,9 @@
       "id": "KOS",
       "name": "Kosovo",
       "type": "country",
-      "flag": "🌐",
+      "flag": "🇽🇰",
       "iso": "KOS",
+      "admin1": "XK",
       "continent": "EU"
     },
     {
