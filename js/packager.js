@@ -39,22 +39,26 @@ source_code_url = "https://github.com/webxdc/where-are-you-all"
       }
 
       // Embed ONLY the specific map and region dataset required for this scope
+      const fetchMapText = async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status} while loading ${url}`);
+        return res.text();
+      };
+
       if (config.level === 'world_continents' || (config.level === 'world' && config.subType === 'continents')) {
-        const continentsMapResp = await fetch('/data/world-continents.json').then(r => r.text());
-        zip.file("data/world-continents.json", continentsMapResp);
+        zip.file("data/world-continents.json", await fetchMapText('/data/world-continents.json'));
       } else if (config.level === 'world_countries' || (config.level === 'world' && config.subType === 'countries')) {
-        const worldCountriesResp = await fetch('/data/world-countries.json').then(r => r.text());
-        zip.file("data/world-countries.json", worldCountriesResp);
+        zip.file("data/world-countries.json", await fetchMapText('/data/world-countries.json'));
       } else if (config.level === 'continent') {
-        const contMapResp = await fetch(`/data/continents/${config.iso}.json`).then(r => r.text());
-        zip.file(`data/continents/${config.iso}.json`, contMapResp);
+        zip.file(`data/continents/${config.iso}.json`, await fetchMapText(`/data/continents/${config.iso}.json`));
       } else if (config.level === 'country') {
-        const countryMapResp = await fetch(`/data/admin1/${config.iso}.json`).then(r => r.text());
-        zip.file(`data/admin1/${config.iso}.json`, countryMapResp);
+        zip.file(`data/admin1/${config.iso}.json`, await fetchMapText(`/data/admin1/${config.iso}.json`));
       }
 
     } catch (err) {
       console.error('[Packager] Error bundling files', err);
+      // Never produce a poll package without its map dataset: it would open to a blank map.
+      throw err;
     }
 
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });

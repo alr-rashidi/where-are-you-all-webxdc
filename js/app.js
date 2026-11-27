@@ -216,21 +216,25 @@
       titleEl.textContent = `${config.region} - Countries Poll`;
       subTitleEl.textContent = 'Click your country on the map to vote';
       try {
-        const contMap = await fetch(`/data/continents/${config.iso}.json`).then(r => r.json());
+        const contMap = await fetchMapData(`/data/continents/${config.iso}.json`);
         appState.currentMapData = contMap;
+        clearMapMessage('usage-map-container');
         appState.usageMapRenderer.render(contMap, appState.counts);
       } catch (e) {
         console.error('Failed to load continent map', e);
+        showUnavailableMap('usage-map-container', `Map data for ${config.region} is missing, so voting is disabled.`);
       }
     } else if (config.level === 'country') {
       titleEl.textContent = `${config.region} - State/Province Poll`;
       subTitleEl.textContent = 'Click your province or state on the map to vote';
       try {
-        const countryMap = await fetch(`/data/admin1/${config.iso}.json`).then(r => r.json());
+        const countryMap = await fetchMapData(`/data/admin1/${config.iso}.json`);
         appState.currentMapData = countryMap;
+        clearMapMessage('usage-map-container');
         appState.usageMapRenderer.render(countryMap, appState.counts);
       } catch (e) {
         console.error('Failed to load country admin1 map', e);
+        showUnavailableMap('usage-map-container', `Map data for ${config.region} is missing, so voting is disabled.`);
       }
     }
 
@@ -369,6 +373,7 @@
     const titleEl = document.getElementById('creator-map-title');
     const subTitleEl = document.getElementById('creator-map-subtitle');
     const searchInput = document.getElementById('region-search-input');
+    clearMapMessage('creator-map-container');
 
     if (type === 'WORLD_COUNTRIES') {
       if (searchInput) searchInput.value = 'Global (All Countries)';
@@ -550,8 +555,9 @@
     if (searchInput) searchInput.value = cont.name;
 
     try {
-      const contMap = await fetch(`/data/continents/${cont.id}.json`).then(r => r.json());
+      const contMap = await fetchMapData(`/data/continents/${cont.id}.json`);
       appState.currentMapData = contMap;
+      clearMapMessage('creator-map-container');
       appState.creatorMapRenderer.render(contMap, {});
 
       const titleEl = document.getElementById('creator-map-title');
@@ -569,6 +575,17 @@
       });
     } catch (e) {
       console.error('Failed to load continent map', e);
+      showUnavailableMap('creator-map-container', `Map data for ${cont.name} is missing.`);
+      showToast(`No country map available for ${cont.name}.`);
+      setCreatorSelectedRegion({
+        id: cont.id,
+        name: cont.name,
+        type: 'continent',
+        iso: cont.id,
+        flag: cont.icon,
+        subCount: 0,
+        available: false
+      });
     }
   }
 
@@ -577,12 +594,18 @@
     const countryName = country ? country.name : countryIso;
     const flag = country ? country.flag : '📍';
 
+    // Country ids in names.json follow the Natural Earth codes used by the world map
+    // (e.g. FRA, NOR), while the admin1 datasets on disk are keyed by ISO2 (FR, NO).
+    // Use the explicit admin1 code whenever the entry provides one.
+    const mapIso = (country && country.admin1) || countryIso;
+
     const searchInput = document.getElementById('region-search-input');
     if (searchInput) searchInput.value = countryName;
 
     try {
-      const countryMap = await fetch(`/data/admin1/${countryIso}.json`).then(r => r.json());
+      const countryMap = await fetchMapData(`/data/admin1/${mapIso}.json`);
       appState.currentMapData = countryMap;
+      clearMapMessage('creator-map-container');
       appState.creatorMapRenderer.render(countryMap, {});
 
       const titleEl = document.getElementById('creator-map-title');
@@ -594,18 +617,27 @@
         id: countryIso,
         name: countryName,
         type: 'country',
-        iso: countryIso,
+        iso: mapIso,
         flag: flag,
         subCount: countryMap.features.length
       });
     } catch (e) {
-      console.warn(`Admin1 map for ${countryIso} not available`, e);
+      console.warn(`Admin1 map for ${countryName} (${mapIso}) not available`, e);
+      appState.currentMapData = null;
+      const titleEl = document.getElementById('creator-map-title');
+      const subTitleEl = document.getElementById('creator-map-subtitle');
+      if (titleEl) titleEl.textContent = `${countryName} Provinces / States Preview`;
+      if (subTitleEl) subTitleEl.textContent = `No state / province map is bundled for ${countryName} yet`;
+      showUnavailableMap('creator-map-container', `Map data for ${countryName} is not available yet.`);
+      showToast(`No state/province map available for ${countryName}.`);
       setCreatorSelectedRegion({
         id: countryIso,
         name: countryName,
         type: 'country',
-        iso: countryIso,
-        flag: flag
+        iso: mapIso,
+        flag: flag,
+        subCount: 0,
+        available: false
       });
     }
   }
@@ -616,11 +648,14 @@
     const descEl = document.getElementById('creator-selected-region-desc');
     const scopeBadge = document.getElementById('creator-selected-scope-badge');
     const pkgBtn = document.getElementById('package-xdc-btn');
+    const available = region.available !== false;
 
     if (nameEl) nameEl.textContent = `${region.flag || '📍'} ${region.name}`;
     if (scopeBadge) scopeBadge.textContent = `${appState.currentScope.toUpperCase()} SCOPE`;
     if (descEl) {
-      if (region.type === 'global_continents') {
+      if (!available) {
+        descEl.textContent = `No map data is bundled for ${region.name} yet, so a poll cannot be generated.`;
+      } else if (region.type === 'global_continents') {
         descEl.textContent = 'Generates an independent .xdc poll for all 7 continents.';
       } else if (region.type === 'global_countries') {
         descEl.textContent = 'Generates an independent .xdc poll for all 177+ countries worldwide.';
@@ -630,7 +665,40 @@
         descEl.textContent = `Generates a .xdc poll with ${region.subCount || 'all'} provinces / states in ${region.name}.`;
       }
     }
-    if (pkgBtn) pkgBtn.disabled = false;
+    if (pkgBtn) pkgBtn.disabled = !available;
+  }
+
+  async function fetchMapData(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} while loading ${url}`);
+    const data = await res.json();
+    if (!data || !Array.isArray(data.features) || data.features.length === 0) {
+      throw new Error(`Empty map dataset at ${url}`);
+    }
+    return data;
+  }
+
+  function showUnavailableMap(containerId, message) {
+    const renderer = containerId === 'usage-map-container'
+      ? appState.usageMapRenderer
+      : appState.creatorMapRenderer;
+    if (renderer) renderer.render({ viewBox: '0 0 1000 520', features: [] }, {});
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    let el = container.querySelector('.map-empty-message');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'map-empty-message';
+      container.appendChild(el);
+    }
+    el.textContent = message;
+    el.style.display = 'flex';
+  }
+
+  function clearMapMessage(containerId) {
+    const el = document.querySelector(`#${containerId} .map-empty-message`);
+    if (el) el.style.display = 'none';
   }
 
   function handleUsageRegionSelected(id, feature) {

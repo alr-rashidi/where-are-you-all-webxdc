@@ -480,6 +480,22 @@ svg.world-map-svg {
   animation: region-pulse 1.2s linear infinite;
 }
 
+.map-empty-message {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
 .map-tooltip {
   position: absolute;
   background: light-dark(#111111, #1e1e24);
